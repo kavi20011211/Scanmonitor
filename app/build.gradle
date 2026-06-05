@@ -5,15 +5,14 @@ plugins {
 
 android {
     namespace 'com.example.scanmonitor'
-    compileSdk 37  // ← bump
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.example.scanmonitor"
         minSdk 29
-        targetSdk 37  // ← bump
+        targetSdk 35
         versionCode 1
         versionName "1.0"
-
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -24,22 +23,21 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = '11'
+        jvmTarget = '17'
     }
 }
 
 dependencies {
-    implementation 'androidx.core:core-ktx:1.12.0'          // ← add this
-    implementation 'androidx.appcompat:appcompat:1.6.1'      // ← bump
-    implementation 'com.google.android.material:material:1.11.0'  // ← bump
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'  // ← bump
+    implementation 'androidx.core:core-ktx:1.13.1'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'com.clover.sdk:clover-android-sdk:334'
-    implementation 'androidx.core:core-ktx:+'
     testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'  // ← bump
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'  // ← bump
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }

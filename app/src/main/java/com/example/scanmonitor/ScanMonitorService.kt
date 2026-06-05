@@ -1,6 +1,7 @@
 package com.example.scanmonitor
 
 import android.accounts.Account
+import android.annotation.SuppressLint
 import android.app.*
 import android.content.Intent
 import android.media.MediaPlayer
@@ -40,7 +41,7 @@ class ScanMonitorService : Service() {
     fun checkItemExists(barcode: String) {
         executor.execute {
             try {
-                val item: Item? = inventoryConnector?.getItemByCode(barcode)
+                val item: Item? = inventoryConnector?.getItem(barcode)
 
                 if (item == null) {
                     // Item not found in Clover inventory — trigger alert
@@ -79,6 +80,7 @@ class ScanMonitorService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    @SuppressLint("ForegroundServiceType")
     private fun startForegroundServiceProperly() {
         val channelId = "scan_channel"
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
