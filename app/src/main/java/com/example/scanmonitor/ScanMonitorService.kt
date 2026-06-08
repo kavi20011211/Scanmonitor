@@ -5,13 +5,14 @@ import android.annotation.SuppressLint
 import android.app.*
 import android.content.Intent
 import android.media.MediaPlayer
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.clover.sdk.util.CloverAccount
 import com.clover.sdk.v3.inventory.InventoryConnector
-import com.clover.sdk.v3.inventory.Item
 import java.util.concurrent.Executors
 
 class ScanMonitorService : Service() {
@@ -19,39 +20,70 @@ class ScanMonitorService : Service() {
     private var inventoryConnector: InventoryConnector? = null
     private var cloverAccount: Account? = null
     private val executor = Executors.newSingleThreadExecutor()
+    private var cachedSkus: Set<String> = emptySet()
 
     override fun onCreate() {
         super.onCreate()
         startForegroundServiceProperly()
 
-        // Get the Clover account
         cloverAccount = CloverAccount.getAccount(this)
-
         if (cloverAccount == null) {
+            showToast("No Clover account found!")
             Log.e("ScanMonitor", "No Clover account found!")
             return
         }
 
-        // Connect to Clover inventory
         inventoryConnector = InventoryConnector(this, cloverAccount!!, null)
         inventoryConnector?.connect()
+        loadInventoryCache()
     }
 
-    // Call this when a barcode is scanned
+    private fun loadInventoryCache() {
+        executor.execute {
+            try {
+                val items = inventoryConnector?.getItems()
+                cachedSkus = items
+                    ?.mapNotNull { it.sku }
+                    ?.filter { it.isNotBlank() }
+                    ?.toHashSet()
+                    ?: emptySet()
+
+                showToast("Inventory cached: ${cachedSkus.size} SKUs loaded")
+                Log.d("ScanMonitor", "Inventory cached: ${cachedSkus.size} SKUs loaded")
+            } catch (e: Exception) {
+                showToast("Error loading inventory: ${e.message}")
+                Log.e("ScanMonitor", "Error loading inventory cache: ${e.message}")
+            }
+        }
+    }
+
     fun checkItemExists(barcode: String) {
         executor.execute {
             try {
-                val item: Item? = inventoryConnector?.getItem(barcode)
+                if (cachedSkus.isEmpty()) {
+                    Log.w("ScanMonitor", "Cache empty, reloading...")
+                    loadInventoryCache()
+                    return@execute
+                }
 
-                if (item == null) {
-                    // Item not found in Clover inventory — trigger alert
+                val found = cachedSkus.contains(barcode)
+
+                if (!found) {
                     playAlert()
                 } else {
-                    Log.d("ScanMonitor", "Item found: ${item.name}")
+                    Log.d("ScanMonitor", "Item found for barcode: $barcode")
                 }
+
             } catch (e: Exception) {
-                Log.e("ScanMonitor", "Error checking inventory: ${e.message}")
+                Log.e("ScanMonitor", "Error checking barcode: ${e.message}")
             }
+        }
+    }
+
+    // Single helper — all Toasts go through here, always safe
+    private fun showToast(message: String) {
+        Handler(Looper.getMainLooper()).post {
+            Toast.makeText(this@ScanMonitorService, message, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -61,7 +93,7 @@ class ScanMonitorService : Service() {
             setOnCompletionListener { mp -> mp.release() }
             start()
         }
-        Toast.makeText(this, "Item not found! Please cancel and rescan.", Toast.LENGTH_LONG).show()
+        showToast("Item not found! Please cancel and rescan.")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
